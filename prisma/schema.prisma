@@ -1,0 +1,319 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// User model - supports buyers, sellers, and admins
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole @default(BUYER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  vendor    Vendor?
+  orders    Order[]
+  cartItems CartItem[]
+  reviews   Review[]
+  addresses Address[]
+
+  @@index([email])
+}
+
+enum UserRole {
+  BUYER
+  SELLER
+  ADMIN
+}
+
+// Vendor model - represents a seller's store
+model Vendor {
+  id          String       @id @default(cuid())
+  userId      String       @unique
+  storeName   String
+  description String?      @db.Text
+  status      VendorStatus @default(PENDING)
+  rating      Float        @default(0)
+  
+  // Cryptocurrency receiving addresses
+  ethAddress  String?
+  btcAddress  String?
+  bscAddress  String?
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products Product[]
+  wallets  VendorWallet[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model VendorWallet {
+  id        String   @id @default(cuid())
+  vendorId  String
+  currency  String   // USDT, BTC, ETH, BNB
+  network   String   // Mainnet, TRC20, ERC20, BSC, Lightning
+  address   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@unique([vendorId, currency, network])
+  @@index([vendorId])
+}
+
+enum VendorStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+// Category model
+model Category {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  order     Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  products Product[]
+
+  @@index([slug])
+}
+
+// Product model
+model Product {
+  id          String        @id @default(cuid())
+  vendorId    String
+  categoryId  String
+  name        String
+  description String        @db.Text
+  priceUSD    Float
+  stock       Int           @default(0)
+  status      ProductStatus @default(DRAFT)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  vendor     Vendor         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  category   Category       @relation(fields: [categoryId], references: [id])
+  images     ProductImage[]
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  reviews    Review[]
+
+  @@index([vendorId])
+  @@index([categoryId])
+  @@index([status])
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  OUT_OF_STOCK
+}
+
+// Product images
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  url       String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  // Relations
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+// Shopping cart
+model CartItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+}
+
+// Order model
+model Order {
+  id           String      @id @default(cuid())
+  userId       String
+  status       OrderStatus @default(PENDING_PAYMENT)
+  totalUSD     Float
+  currency     String // BTC, ETH, USDT, BNB
+  network      String? // Mainnet, ERC20, TRC20, BSC
+  cryptoAmount Float
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  // Relations
+  user       User        @relation(fields: [userId], references: [id])
+  items      OrderItem[]
+  payment    Payment?
+  address    Address?    @relation(fields: [addressId], references: [id])
+  addressId  String?
+
+  @@index([userId])
+  @@index([status])
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAYMENT_CONFIRMING
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+// Order items
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  priceUSD  Float
+  createdAt DateTime @default(now())
+
+  // Relations
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+}
+
+// Payment model
+model Payment {
+  id             String        @id @default(cuid())
+  orderId        String        @unique
+  currency       String // BTC, ETH, USDT, BNB
+  network        String // Mainnet, ERC20, TRC20, BSC
+  amount         Float
+  paymentAddress String
+  status         PaymentStatus @default(PENDING)
+  expiresAt      DateTime
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  // Relations
+  order        Order                   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  transactions BlockchainTransaction[]
+
+  @@index([orderId])
+  @@index([status])
+  @@index([paymentAddress])
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMING
+  CONFIRMED
+  EXPIRED
+  FAILED
+}
+
+// Blockchain transaction records
+model BlockchainTransaction {
+  id            String    @id @default(cuid())
+  paymentId     String
+  txHash        String    @unique
+  network       String // ethereum, bsc, bitcoin
+  amount        Float
+  confirmations Int       @default(0)
+  status        TxStatus  @default(PENDING)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
+  @@index([txHash])
+}
+
+enum TxStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+// Cryptocurrency price cache
+model CryptoPrice {
+  id        String   @id @default(cuid())
+  currency  String   @unique // BTC, ETH, USDT, BNB
+  priceUSD  Float
+  updatedAt DateTime @updatedAt
+
+  @@index([currency])
+}
+
+// Product reviews
+model Review {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  rating    Int // 1-5
+  comment   String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([productId])
+}
+
+// Shipping addresses
+model Address {
+  id          String   @id @default(cuid())
+  userId      String
+  fullName    String
+  phone       String
+  addressLine String
+  city        String
+  state       String
+  postalCode  String
+  country     String
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@index([userId])
+}
