@@ -104,10 +104,11 @@ async function main() {
         },
     })
 
-    // Create Wallets for Vendor 1
+    // Create Wallets for Vendors
     // Using simple upserts to avoid duplicates on re-seed
     await prisma.vendorWallet.deleteMany({ where: { vendorId: { in: [vendor1.id, vendor2.id] } } })
 
+    // Vendor 1 Wallets
     await prisma.vendorWallet.create({
         data: { vendorId: vendor1.id, currency: 'BTC', network: 'Bitcoin', address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' }
     })
@@ -120,13 +121,19 @@ async function main() {
     await prisma.vendorWallet.create({
         data: { vendorId: vendor1.id, currency: 'USDT', network: 'TRC20', address: 'T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb' }
     })
+    await prisma.vendorWallet.create({
+        data: { vendorId: vendor1.id, currency: 'SOL', network: 'Solana', address: 'HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH' }
+    })
 
-    // Create Wallets for Vendor 2
+    // Vendor 2 Wallets
     await prisma.vendorWallet.create({
         data: { vendorId: vendor2.id, currency: 'BNB', network: 'BSC', address: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F' }
     })
     await prisma.vendorWallet.create({
         data: { vendorId: vendor2.id, currency: 'USDT', network: 'BEP20', address: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F' }
+    })
+    await prisma.vendorWallet.create({
+        data: { vendorId: vendor2.id, currency: 'SOL', network: 'Solana', address: 'HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH' }
     })
 
     // Create sample products
@@ -199,6 +206,7 @@ async function main() {
             { currency: 'ETH', priceUSD: 2200 },
             { currency: 'USDT', priceUSD: 1 },
             { currency: 'BNB', priceUSD: 310 },
+            { currency: 'SOL', priceUSD: 70 },
         ],
         skipDuplicates: true,
     })

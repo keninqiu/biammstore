@@ -180,7 +180,7 @@ export default function CheckoutPage() {
 
                             {/* Payment Method Selection */}
                             <div className="grid grid-cols-2 gap-4">
-                                {['BTC', 'ETH', 'USDT', 'BNB'].map((c) => (
+                                {['BTC', 'ETH', 'USDT', 'BNB', 'SOL'].map((c) => (
                                     <button
                                         key={c}
                                         onClick={() => {

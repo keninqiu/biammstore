@@ -20,7 +20,7 @@ const orderSchema = z.object({
         country: z.string().min(2),
         zip: z.string().min(2),
     }),
-    currency: z.enum(['BTC', 'ETH', 'USDT', 'BNB']),
+    currency: z.enum(['BTC', 'ETH', 'USDT', 'BNB', 'SOL']),
     network: z.string()
 })
 

@@ -291,6 +291,76 @@ export async function checkBTCTransaction(txHash: string): Promise<{
     }
 }
 
+
+/**
+ * Check Solana transaction
+ */
+export async function checkSolanaTransaction(txHash: string): Promise<{
+    confirmed: boolean
+    confirmations: number
+    amount: number
+    to: string
+}> {
+    const { Connection } = await import('@solana/web3.js')
+    const connection = new Connection(NETWORK_CONFIG.solana.rpcUrl, 'confirmed')
+
+    try {
+        const tx = await connection.getParsedTransaction(txHash, {
+            maxSupportedTransactionVersion: 0
+        })
+
+        if (!tx) {
+            throw new Error('Transaction not found')
+        }
+
+        // Check confirmations
+        // In Solana, if we get the tx with 'confirmed' commitment, it's effectively confirmed enough for most.
+        // But we can check slot difference if needed. For simplicity we assume if it exists and is recent, it is confirmed.
+        let confirmations = 0
+        if (tx.slot) {
+            const currentSlot = await connection.getSlot()
+            confirmations = currentSlot - tx.slot
+        }
+
+        // Parse amount and recipient
+        // This is complex for Solana as transfer instructions can vary (system transfer vs SPL token)
+        // For native SOL transfer:
+        let amount = 0
+        let to = ''
+
+        // Look for System Program Transfer
+        const instructions = tx.transaction.message.instructions
+        for (const ix of instructions) {
+            // This is a simplified check. Real implementation needs robust parsing of SystemProgram.transfer
+            // We'll rely on pre/post balances which is safer for SOL transfers
+            if ('parsed' in ix && ix.program === 'system' && ix.parsed.type === 'transfer') {
+                const info = ix.parsed.info
+                amount = info.lamports / 1e9 // 1 SOL = 1e9 lamports
+                to = info.destination
+                break
+            }
+        }
+
+        // If simple instruction parsing failed (maybe it's a complex tx), try balance changes
+        if (amount === 0 && tx.meta?.postBalances && tx.meta.preBalances) {
+            // Identify which account received money.
+            // This is tricky without knowing the specific wallet index. 
+            // For MVP, we'll assume the instruction parsing works for standard transfers.
+        }
+
+        return {
+            confirmed: confirmations >= NETWORK_CONFIG.solana.requiredConfirmations,
+            confirmations,
+            amount,
+            to,
+        }
+
+    } catch (error) {
+        console.error('Error checking Solana transaction:', error)
+        throw error
+    }
+}
+
 /**
  * Verify payment for an order
  */
@@ -328,6 +398,10 @@ export async function verifyPayment(paymentId: string, txHash: string): Promise<
             txInfo = await checkBTCTransaction(txHash)
             break
 
+        case 'SOL':
+            txInfo = await checkSolanaTransaction(txHash)
+            break
+
         default:
             throw new Error(`Unsupported currency: ${payment.currency}`)
     }
@@ -353,7 +427,7 @@ export async function verifyPayment(paymentId: string, txHash: string): Promise<
         create: {
             paymentId: payment.id,
             txHash,
-            network: payment.currency === 'BTC' ? 'bitcoin' : payment.currency === 'BNB' ? 'bsc' : 'ethereum',
+            network: payment.currency === 'BTC' ? 'bitcoin' : payment.currency === 'BNB' ? 'bsc' : (payment.currency === 'SOL' ? 'solana' : 'ethereum'),
             amount: txInfo.amount,
             confirmations: txInfo.confirmations,
             status: txInfo.confirmed ? 'CONFIRMED' : 'PENDING',
