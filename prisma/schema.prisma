@@ -65,9 +65,11 @@ model Vendor {
 model VendorWallet {
   id        String   @id @default(cuid())
   vendorId  String
-  currency  String   // USDT, BTC, ETH, BNB
-  network   String   // Mainnet, TRC20, ERC20, BSC, Lightning
-  address   String
+  currency  String   // USDT, BTC, ETH, BNB, SOL, USDC
+  network   String   // Mainnet, TRC20, ERC20, BSC, Lightning, Solana
+  address   String?  // Optional if xpub is provided
+  xpub      String?  // Extended Public Key for HD derivation
+  lastIndex Int      @default(0) // Track last used derivation index
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

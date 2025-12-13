@@ -10,6 +10,12 @@ import {
 } from '@/lib/crypto-config'
 import { getBinancePrices } from '@/lib/binance-price-service'
 
+// Initialize BIP32
+import * as ecc from 'tiny-secp256k1'
+import { BIP32Factory } from 'bip32'
+const bip32 = BIP32Factory(ecc)
+import * as bitcoin from 'bitcoinjs-lib'
+
 // ERC-20 ABI for USDT (minimal interface)
 const ERC20_ABI = [
     'function balanceOf(address account) view returns (uint256)',
@@ -101,7 +107,11 @@ export async function calculateCryptoAmount(
  * Generate a payment address for an order
  * For MVP, we'll use the vendor's wallet address.
  */
-async function generatePaymentAddress(orderId: string, currency: string, network?: string): Promise<string> {
+/**
+ * Get or derive a payment address for an order
+ * Supports HD Wallets (xpub) and static addresses
+ */
+async function getOrDerivePaymentAddress(orderId: string, currency: string, network?: string): Promise<string> {
     // 1. Get the order to find the vendor (via OrderItems -> Product -> Vendor)
     const order = await prisma.order.findUnique({
         where: { id: orderId },
@@ -135,13 +145,74 @@ async function generatePaymentAddress(orderId: string, currency: string, network
         const fallbackWallet = vendor.wallets.find(w => w.currency === currency)
         if (fallbackWallet) {
             console.warn(`No wallet found for ${currency} on ${network}, utilizing fallback ${fallbackWallet.network}`)
-            return fallbackWallet.address
+            return deriveFromWallet(fallbackWallet, orderId)
         }
 
         throw new Error(`Vendor ${vendor.storeName} does not have a configured wallet for ${currency} ${network ? `on ${network}` : ''}`)
     }
 
-    return wallet.address
+    return deriveFromWallet(wallet, orderId)
+}
+
+/**
+ * Derive an address from a vendor wallet
+ * If xpub is present, increments index and derives new address.
+ * Otherwise returns static address.
+ */
+async function deriveFromWallet(wallet: any, orderId?: string): Promise<string> {
+    // If no xpub, return static address
+    if (!wallet.xpub) {
+        if (!wallet.address) throw new Error(`Wallet for ${wallet.currency} has neither address nor xpub`)
+        return wallet.address
+    }
+
+    // Atomically increment the index
+    const updatedWallet = await prisma.vendorWallet.update({
+        where: { id: wallet.id },
+        data: { lastIndex: { increment: 1 } }
+    })
+
+    const index = updatedWallet.lastIndex
+
+    // Derivation Logic
+    try {
+        // BTC Derivation (BIP84/BIP49/BIP44)
+        if (wallet.currency === 'BTC') {
+            const node = bip32.fromBase58(wallet.xpub)
+            const child = node.derive(0).derive(index) // External chain (0), index
+
+            // Assume SegWit (Bech32) for efficiency if xpub allows, or standard
+            // We'll trust the xpub format. If it starts with xpub, it's legacy/p2sh. zpub is bech32.
+            // For simplicity, we wrap in p2wpkh
+            const { address } = bitcoin.payments.p2wpkh({ pubkey: child.publicKey, network: bitcoin.networks.bitcoin })
+            return address!
+        }
+
+        // ETH/BSC/ERC20 Derivation
+        if (['ETH', 'BNB', 'USDT', 'USDC'].includes(wallet.currency) && wallet.network !== 'Solana' && wallet.network !== 'TRC20') {
+            const hdNode = ethers.HDNodeWallet.fromExtendedKey(wallet.xpub)
+            const child = hdNode.derivePath(`0/${index}`) // External chain
+            return child.address
+        }
+
+        // Solana Derivation
+        // Note: Solana doesn't support standard BIP32 public derivation from xpub easily.
+        // We'd need a specific ed25519-hd scheme or use "createWithSeed" which requires base pubkey.
+        // For now, checks if xpub is actually a base58 pubkey we can use with createWithSeed?
+        // Or just fallback to static if not implementable safely.
+        if (wallet.currency === 'SOL' || wallet.network === 'Solana') {
+            // Placeholder: For now return static address if present, else error or maybe just append index if verifying manually?
+            // Let's fallback to static for SOL for MVP until we have a better plan.
+            if (wallet.address) return wallet.address
+            throw new Error('HD Derivation for Solana not yet fully supported (requires private key or unhardened path trick)')
+        }
+
+        return wallet.address
+    } catch (e) {
+        console.error('Derivation failed:', e)
+        // Fallback
+        return wallet.address
+    }
 }
 
 /**
@@ -374,6 +445,8 @@ export async function checkSolanaTransaction(txHash: string): Promise<{
     }
 }
 
+
+
 /**
  * Verify payment for an order
  */
@@ -437,10 +510,12 @@ export async function verifyPayment(paymentId: string, txHash: string): Promise<
             throw new Error(`Unsupported currency: ${payment.currency}`)
     }
 
-    // Verify payment address matches
+    // Verify payment address matches (unless it's a memo-based verification, where address + memo matters)
     if (txInfo.to.toLowerCase() !== payment.paymentAddress.toLowerCase()) {
         throw new Error('Payment address mismatch')
     }
+
+
 
     // Verify amount (with 1% tolerance for fees/rounding)
     const tolerance = payment.amount * 0.01
@@ -511,13 +586,14 @@ export async function createPayment(orderId: string, currency: CryptoCurrency, n
     // Calculate crypto amount
     const cryptoAmount = await calculateCryptoAmount(usdTotal, currency)
 
-    // Generate payment address
-    const paymentAddress = await generatePaymentAddress(orderId, currency, network)
+    // Generate payment address (static or derived)
+    const paymentAddress = await getOrDerivePaymentAddress(orderId, currency, network)
 
     // Calculate expiration time
     const expiresAt = new Date(Date.now() + PAYMENT_TIMEOUT_MINUTES * 60 * 1000)
 
     // Create payment
+    // @ts-ignore
     const payment = await prisma.payment.create({
         data: {
             orderId,

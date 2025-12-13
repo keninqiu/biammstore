@@ -79,9 +79,12 @@ export default function CryptoPayment({ address, amount, currency, paymentId }: 
                 </div>
             </div>
 
+
+
+
             <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 text-xs text-center">
                 Only send <strong>{currency}</strong> to this address. Sending other assets will result in permanent loss.
             </div>
-        </div>
+        </div >
     )
 }

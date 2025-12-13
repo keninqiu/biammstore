@@ -110,13 +110,13 @@ async function main() {
 
     // Vendor 1 Wallets
     await prisma.vendorWallet.create({
-        data: { vendorId: vendor1.id, currency: 'BTC', network: 'Bitcoin', address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' }
+        data: { vendorId: vendor1.id, currency: 'BTC', network: 'Bitcoin', address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', xpub: 'xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8' }
     })
     await prisma.vendorWallet.create({
-        data: { vendorId: vendor1.id, currency: 'ETH', network: 'Ethereum', address: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F' }
+        data: { vendorId: vendor1.id, currency: 'ETH', network: 'Ethereum', address: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F', xpub: 'xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8' }
     })
     await prisma.vendorWallet.create({
-        data: { vendorId: vendor1.id, currency: 'USDT', network: 'ERC20', address: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F' }
+        data: { vendorId: vendor1.id, currency: 'USDT', network: 'ERC20', address: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F', xpub: 'xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8' }
     })
     await prisma.vendorWallet.create({
         data: { vendorId: vendor1.id, currency: 'USDT', network: 'TRC20', address: 'T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb' }
