@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { createPayment } from '@/lib/crypto-service'
 import { z } from 'zod'
-import bcrypt from 'bcrypt'
+import { cookies } from 'next/headers'
+import { createUser } from '@/lib/user-service'
 
 // Validation schema
 const orderSchema = z.object({
@@ -21,14 +22,16 @@ const orderSchema = z.object({
         zip: z.string().min(2),
     }),
     currency: z.enum(['BTC', 'ETH', 'USDT', 'BNB', 'SOL', 'USDC']),
-    network: z.string()
+    network: z.string(),
+    paymentMethod: z.string().optional()
 })
 
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const { items, shipping, currency, network } = orderSchema.parse(body)
+        const { items, shipping, currency, network, paymentMethod } = orderSchema.parse(body)
 
+        // ... (product checking logic) ...
         // 1. Calculate Total (in production, fetch real prices from DB to avoid manipulation)
         // For this demo, we'll verify against DB products
         let totalUSD = 0
@@ -52,16 +55,26 @@ export async function POST(request: Request) {
         })
 
         if (!user) {
-            // Create a guest user
-            const hashedPassword = await bcrypt.hash('Guest123!', 10)
-            user = await prisma.user.create({
-                data: {
-                    email: shipping.email,
-                    name: `${shipping.firstName} ${shipping.lastName}`,
-                    password: hashedPassword,
-                    role: 'BUYER'
-                }
-            })
+            // Get referral code from cookie
+            const cookieStore = cookies()
+            const referralCode = cookieStore.get('ref_code')?.value
+
+            // Create a guest user using service (handles referral logic)
+            // Note: createUser hashes checks for existence too, but we double check or let it handle.
+            // Using a dummy password for guest, they should reset it later or we send email.
+            user = await createUser({
+                email: shipping.email,
+                name: `${shipping.firstName} ${shipping.lastName}`,
+                password: 'Guest123!', // TODO: Generate random secure password or handle differently
+                role: 'BUYER',
+                referrerCode: referralCode
+            }) as any // Cast because createUser returns User without password (Partial<User>) but we need User object.
+            // Actually prisma.user.create returns full User, createUser returns Omit<User, 'password'>.
+            // Prisma relations expects full user usually but we only need ID.
+            // We need to fetch full user or cast.
+
+            // Re-fetch to be safe and compatible with types if strict
+            user = await prisma.user.findUnique({ where: { id: user.id } }) as any
         }
 
         // 3. Create Order in Transaction
@@ -112,7 +125,7 @@ export async function POST(request: Request) {
         })
 
         // 4. Generate Payment
-        const payment = await createPayment(order.id, currency, network, totalUSD)
+        const payment = await createPayment(order.id, currency, network, totalUSD, paymentMethod)
 
         return NextResponse.json({
             orderId: order.id,

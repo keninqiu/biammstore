@@ -23,6 +23,7 @@ export default function CheckoutPage() {
     })
     const [currency, setCurrency] = useState<'BTC' | 'ETH' | 'USDT' | 'BNB' | 'SOL' | 'USDC' | ''>('')
     const [network, setNetwork] = useState('')
+    const [paymentMethod, setPaymentMethod] = useState('')
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -41,7 +42,8 @@ export default function CheckoutPage() {
                     items: items.map(item => ({ id: item.id, quantity: item.quantity, price: item.price })),
                     shipping: formData,
                     currency,
-                    network
+                    network,
+                    paymentMethod
                 })
             })
 
@@ -89,9 +91,11 @@ export default function CheckoutPage() {
                     <div className="lg:col-span-2 space-y-8">
 
                         {/* Step 1: Shipping Info */}
-                        <div className={`bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 ${step === 2 ? 'opacity-50 pointer-events-none' : ''}`}>
+                        <div className={`bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 ${step > 1 ? 'opacity-50 pointer-events-none' : ''}`}>
                             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                                <span className="w-8 h-8 bg-black dark:bg-white text-white dark:text-black rounded-full flex items-center justify-center text-sm font-bold">1</span>
+                                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step > 1 ? 'bg-green-500 text-white' : 'bg-black dark:bg-white text-white dark:text-black'}`}>
+                                    {step > 1 ? '✓' : '1'}
+                                </span>
                                 Shipping Details
                             </h2>
 
@@ -171,75 +175,134 @@ export default function CheckoutPage() {
                             )}
                         </div>
 
-                        {/* Step 2: Payment */}
-                        <div className={`bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 ${step === 1 ? 'opacity-50 pointer-events-none' : ''}`}>
+                        {/* Step 2: Payment Details (Coin & Network) */}
+                        <div className={`bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 ${step !== 2 ? (step > 2 ? 'opacity-50 pointer-events-none' : 'opacity-50 pointer-events-none') : ''}`}>
+                            {/* Keep opacity 50 if step 1 or step 3? Actually if step 3, should step 2 be clickable? Ideally yes to edit. But for simplicity let's follow sequential flow. If step > 2, it is done. */}
                             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                                <span className="w-8 h-8 bg-black dark:bg-white text-white dark:text-black rounded-full flex items-center justify-center text-sm font-bold">2</span>
-                                Payment Method
+                                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step > 2 ? 'bg-green-500 text-white' : (step === 2 ? 'bg-black dark:bg-white text-white dark:text-black' : 'bg-gray-200 text-gray-500')}`}>
+                                    {step > 2 ? '✓' : '2'}
+                                </span>
+                                Select Cryptocurrency
                             </h2>
 
-                            {/* Payment Method Selection */}
-                            <div className="grid grid-cols-2 gap-4">
-                                {['BTC', 'ETH', 'USDT', 'BNB', 'SOL', 'USDC'].map((c) => (
-                                    <button
-                                        key={c}
-                                        onClick={() => {
-                                            setCurrency(c as any)
-                                            setNetwork('') // Reset network on currency change
-                                        }}
-                                        className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${currency === c
-                                            ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20'
-                                            : 'border-gray-200 dark:border-gray-700 hover:border-primary-300'
-                                            }`}
-                                    >
-                                        <span className="font-bold">{c}</span>
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Network Selection */}
-                            {currency && (
-                                <div className="mt-6 animate-fadeIn">
-                                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                                        Select Network for {currency}
-                                    </h3>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                        {SUPPORTED_NETWORKS[currency as keyof typeof SUPPORTED_NETWORKS]?.map((net) => (
+                            {step >= 2 && (
+                                <>
+                                    {/* Payment Method Selection */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {['BTC', 'ETH', 'USDT', 'BNB', 'SOL', 'USDC'].map((c) => (
                                             <button
-                                                key={net}
-                                                onClick={() => setNetwork(net)}
-                                                className={`p-3 rounded-lg border text-sm font-medium transition-all ${network === net
-                                                    ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-300'
-                                                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                                                key={c}
+                                                onClick={() => {
+                                                    setCurrency(c as any)
+                                                    setNetwork('') // Reset network on currency change
+                                                    if (step > 2) setStep(2) // Return to step 2 if editing
+                                                }}
+                                                className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${currency === c
+                                                    ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20'
+                                                    : 'border-gray-200 dark:border-gray-700 hover:border-primary-300'
                                                     }`}
+                                                disabled={step > 2}
                                             >
-                                                {net}
+                                                <span className="font-bold">{c}</span>
                                             </button>
                                         ))}
                                     </div>
-                                    {!network && (
-                                        <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
-                                            Please select a network to proceed.
-                                        </p>
-                                    )}
-                                </div>
-                            )}
 
-                            {step === 2 && (
-                                <div className="mt-6 flex gap-4">
-                                    <button
-                                        onClick={() => setStep(1)}
-                                        className="px-6 py-3 font-medium text-gray-500 hover:text-gray-900"
-                                    >
-                                        Back
-                                    </button>
-                                    <button
-                                        onClick={handleSubmit}
-                                        disabled={!currency || !network || loading}
-                                        className="flex-1 bg-primary-600 text-white font-bold py-3 rounded-xl hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                    >
-                                        {loading ? 'Processing...' : `Pay with ${currency}`}
-                                    </button>
+                                    {/* Network Selection */}
+                                    {currency && (
+                                        <div className="mt-6 animate-fadeIn">
+                                            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                                                Select Network for {currency}
+                                            </h3>
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                                {SUPPORTED_NETWORKS[currency as keyof typeof SUPPORTED_NETWORKS]?.map((net) => (
+                                                    <button
+                                                        key={net}
+                                                        onClick={() => {
+                                                            setNetwork(net)
+                                                            if (step > 2) setStep(2)
+                                                        }}
+                                                        className={`p-3 rounded-lg border text-sm font-medium transition-all ${network === net
+                                                            ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-300'
+                                                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                                                            }`}
+                                                        disabled={step > 2}
+                                                    >
+                                                        {net}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {step === 2 && (
+                                        <div className="mt-6 flex gap-4">
+                                            <button
+                                                onClick={() => setStep(1)}
+                                                className="px-6 py-3 font-medium text-gray-500 hover:text-gray-900"
+                                            >
+                                                Back
+                                            </button>
+                                            <button
+                                                onClick={() => setStep(3)}
+                                                disabled={!currency || !network}
+                                                className="flex-1 bg-black dark:bg-white text-white dark:text-black font-bold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                Continue
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+
+                        {/* Step 3: Payment Type Selection */}
+                        <div className={`bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 ${step !== 3 ? 'opacity-50 pointer-events-none' : ''}`}>
+                            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step === 3 ? 'bg-black dark:bg-white text-white dark:text-black' : 'bg-gray-200 text-gray-500'}`}>3</span>
+                                Payment Method
+                            </h2>
+
+                            {step === 3 && (
+                                <div className="space-y-4 animate-fadeIn">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        {[
+                                            { id: 'DIRECT', icon: '📝', label: 'Direct Transfer', sub: 'Show QR Code' },
+                                            { id: 'CONNECT', icon: '🔗', label: 'Connect Wallet', sub: 'Web3 Wallet' },
+                                            { id: 'X402', icon: '⚡', label: 'X402', sub: 'Fast Payment' }
+                                        ].map((method) => (
+                                            <button
+                                                key={method.id}
+                                                onClick={() => setPaymentMethod(method.id)}
+                                                className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${paymentMethod === method.id
+                                                    ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20'
+                                                    : 'border-gray-200 dark:border-gray-700 hover:border-primary-300'
+                                                    }`}
+                                            >
+                                                <span className="text-2xl">{method.icon}</span>
+                                                <div className="text-center">
+                                                    <div className="font-bold whitespace-nowrap">{method.label}</div>
+                                                    <div className="text-xs text-gray-500 dark:text-gray-400">{method.sub}</div>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="mt-8 flex gap-4">
+                                        <button
+                                            onClick={() => setStep(2)}
+                                            className="px-6 py-3 font-medium text-gray-500 hover:text-gray-900"
+                                        >
+                                            Back
+                                        </button>
+                                        <button
+                                            onClick={handleSubmit}
+                                            disabled={!paymentMethod || loading}
+                                            className="flex-1 bg-primary-600 text-white font-bold py-3 rounded-xl hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                        >
+                                            {loading ? 'Processing...' : `Complete Order`}
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>

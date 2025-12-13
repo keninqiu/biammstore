@@ -182,10 +182,21 @@ export async function updateOrderStatus(
         | 'CANCELLED'
         | 'REFUNDED'
 ) {
-    return prisma.order.update({
+    const result = await prisma.order.update({
         where: { id },
         data: { status },
     })
+
+    if (status === 'REFUNDED') {
+        try {
+            const { cancelReferralReward } = await import('./referral-service')
+            await cancelReferralReward(id)
+        } catch (error) {
+            console.error('Failed to cancel referral reward:', error)
+        }
+    }
+
+    return result
 }
 
 export async function cancelOrder(id: string) {

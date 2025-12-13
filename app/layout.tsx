@@ -31,6 +31,26 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning={true}
       >
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.addEventListener('error', function(event) {
+                if (event.message?.includes('chrome.runtime.sendMessage') || event.message?.includes('Extension ID')) {
+                  event.stopImmediatePropagation();
+                  event.preventDefault();
+                  console.warn("Suppressed extension error:", event.message);
+                }
+              }, true);
+              window.addEventListener('unhandledrejection', function(event) {
+                if (event.reason?.message?.includes('chrome.runtime.sendMessage') || event.reason?.message?.includes('Extension ID')) {
+                  event.stopImmediatePropagation();
+                  event.preventDefault();
+                  console.warn("Suppressed extension promise rejection:", event.reason);
+                }
+              }, true);
+            `,
+          }}
+        />
         <Navbar />
         <CartDrawer />
         {children}

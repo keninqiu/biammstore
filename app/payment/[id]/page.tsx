@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import CryptoPayment from '@/app/components/CryptoPayment'
+import WalletConnect from '@/app/components/WalletConnect'
 import Link from 'next/link'
 
 // Don't cache this page so we always see fresh status
@@ -48,14 +49,36 @@ export default async function PaymentPage({ params }: Props) {
 
                     {/* Payment Component */}
                     <div>
-                        <CryptoPayment
-                            address={payment.paymentAddress}
-                            amount={payment.amount}
-                            currency={payment.currency}
-                            paymentId={payment.id}
-                        />
+                        {/* @ts-ignore */}
+                        {payment.paymentMethod === 'DIRECT' || !payment.paymentMethod ? (
+                            <CryptoPayment
+                                address={payment.paymentAddress}
+                                amount={payment.amount}
+                                currency={payment.currency}
+                                paymentId={payment.id}
+                            />
+                            /* @ts-ignore */
+                        ) : payment.paymentMethod === 'CONNECT' ? (
+                            <WalletConnect
+                                amount={payment.amount}
+                                currency={payment.currency}
+                                network={payment.network}
+                                paymentAddress={payment.paymentAddress}
+                            />
+                        ) : (
+                            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden p-8 text-center">
+                                <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                                    ⚡
+                                </div>
+                                <h3 className="text-xl font-bold mb-2">X402 Payment</h3>
+                                <p className="text-gray-500 mb-6">Authorized X402 Gateway Transfer</p>
+                                <button className="w-full bg-purple-600 text-white font-bold py-3 rounded-xl hover:bg-purple-700 transition-colors">
+                                    Proceed with X402
+                                </button>
+                            </div>
+                        )}
 
-                        {/* Status Checker (Mock) */}
+                        {/* Status Checker (Mock) - Still relevant for Direct Transfer mostly, but keeping for all for now */}
                         <div className="mt-6 text-center">
                             <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-full text-sm font-medium animate-pulse">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

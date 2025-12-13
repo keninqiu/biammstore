@@ -6,6 +6,7 @@ export async function createUser(data: {
     password: string
     name: string
     role?: 'BUYER' | 'SELLER' | 'ADMIN'
+    referrerCode?: string // Code from cookie
 }) {
     // Check if user exists
     const existing = await prisma.user.findUnique({
@@ -19,6 +20,24 @@ export async function createUser(data: {
     // Hash password
     const hashedPassword = await bcrypt.hash(data.password, 10)
 
+    // Generate own referral code
+    let referralCode = ''
+    try {
+        const { generateReferralCode } = await import('./referral-service')
+        referralCode = await generateReferralCode()
+    } catch (e) {
+        console.error("Failed to generate referral code", e)
+    }
+
+    // Resolve referrer if code provided
+    let referrerId = undefined
+    if (data.referrerCode) {
+        const referrer = await prisma.user.findUnique({ where: { referralCode: data.referrerCode } })
+        if (referrer) {
+            referrerId = referrer.id
+        }
+    }
+
     // Create user
     const user = await prisma.user.create({
         data: {
@@ -26,6 +45,8 @@ export async function createUser(data: {
             password: hashedPassword,
             name: data.name,
             role: data.role || 'BUYER',
+            referralCode: referralCode || undefined,
+            referrerId: referrerId
         },
     })
 

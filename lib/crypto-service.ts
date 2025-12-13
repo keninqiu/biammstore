@@ -553,6 +553,14 @@ export async function verifyPayment(paymentId: string, txHash: string): Promise<
             data: { status: 'PAID' },
         })
 
+        // Process Referral Reward
+        try {
+            const { processReferralReward } = await import('./referral-service')
+            await processReferralReward(payment.orderId)
+        } catch (error) {
+            console.error('Failed to process referral reward:', error)
+        }
+
         return true
     } else {
         await prisma.payment.update({
@@ -569,10 +577,8 @@ export async function verifyPayment(paymentId: string, txHash: string): Promise<
     }
 }
 
-/**
- * Create a payment for an order
- */
-export async function createPayment(orderId: string, currency: CryptoCurrency, network: string, amountUSD?: number) {
+// Create a payment for an order
+export async function createPayment(orderId: string, currency: CryptoCurrency, network: string, amountUSD?: number, paymentMethod: string = 'DIRECT') {
     const order = await prisma.order.findUnique({
         where: { id: orderId },
     })
@@ -586,8 +592,34 @@ export async function createPayment(orderId: string, currency: CryptoCurrency, n
     // Calculate crypto amount
     const cryptoAmount = await calculateCryptoAmount(usdTotal, currency)
 
-    // Generate payment address (static or derived)
-    const paymentAddress = await getOrDerivePaymentAddress(orderId, currency, network)
+    // PAYMENT ADDRESS STRATEGY
+    // 1. Try to find an unused address in the pool
+    let paymentAddress = ''
+
+    const pooledAddress = await prisma.addressPool.findFirst({
+        where: {
+            currency,
+            network,
+            isUsed: false
+        }
+    })
+
+    if (pooledAddress) {
+        // Use pooled address
+        paymentAddress = pooledAddress.address
+
+        // Mark as used immediately to prevent race conditions (simple optimistic lock)
+        await prisma.addressPool.update({
+            where: { id: pooledAddress.id },
+            data: {
+                isUsed: true,
+                orderId: orderId
+            }
+        })
+    } else {
+        // 2. Fallback: Generate payment address (static or derived)
+        paymentAddress = await getOrDerivePaymentAddress(orderId, currency, network)
+    }
 
     // Calculate expiration time
     const expiresAt = new Date(Date.now() + PAYMENT_TIMEOUT_MINUTES * 60 * 1000)
@@ -601,6 +633,7 @@ export async function createPayment(orderId: string, currency: CryptoCurrency, n
             network,
             amount: cryptoAmount,
             paymentAddress,
+            paymentMethod,
             status: 'PENDING',
             expiresAt,
         },

@@ -20,6 +20,13 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Referral System
+  referralCode String?          @unique // Unique code for sharing
+  referrerId   String?          // Who referred this user
+  referrer     User?            @relation("UserReferrals", fields: [referrerId], references: [id])
+  referrals    User[]           @relation("UserReferrals")
+  rewards      ReferralReward[]
+
   // Relations
   vendor    Vendor?
   orders    Order[]
@@ -181,6 +188,7 @@ model Order {
   user       User        @relation(fields: [userId], references: [id])
   items      OrderItem[]
   payment    Payment?
+  reward     ReferralReward?
   address    Address?    @relation(fields: [addressId], references: [id])
   addressId  String?
 
@@ -219,12 +227,14 @@ model OrderItem {
 model Payment {
   id             String        @id @default(cuid())
   orderId        String        @unique
-  currency       String // BTC, ETH, USDT, BNB
-  network        String // Mainnet, ERC20, TRC20, BSC
+  currency       String     // USDT, BTC, ETH, BNB...
+  network        String     // Mainnet, TRC20, ERC20...
   amount         Float
   paymentAddress String
+  paymentMethod  String     @default("DIRECT") // DIRECT, CONNECT, X402
   status         PaymentStatus @default(PENDING)
-  expiresAt      DateTime
+  txHash         String?
+  expiresAt      DateTime      @default(now())
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -235,6 +245,45 @@ model Payment {
   @@index([orderId])
   @@index([status])
   @@index([paymentAddress])
+}
+
+// Address Pool model
+model AddressPool {
+  id        String   @id @default(cuid())
+  currency  String   // USDT, BTC, ETH...
+  network   String   // Mainnet, TRC20, ERC20...
+  address   String
+  isUsed    Boolean  @default(false)
+  orderId   String?  // Link to order if used
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([currency, network, isUsed])
+}
+
+model ReferralReward {
+  id          String               @id @default(cuid())
+  referrerId  String
+  orderId     String               @unique
+  amount      Float
+  status      ReferralRewardStatus @default(PENDING)
+  unlockDate  DateTime
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  // Relations
+  referrer User  @relation(fields: [referrerId], references: [id], onDelete: Cascade)
+  order    Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([referrerId])
+  @@index([status])
+}
+
+enum ReferralRewardStatus {
+  PENDING
+  AVAILABLE
+  WITHDRAWN
+  CANCELED
 }
 
 enum PaymentStatus {
