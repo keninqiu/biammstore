@@ -8,20 +8,26 @@ interface PriceData {
     ETH: number
     BNB: number
     USDT: number
+    SOL: number
+    USDC: number
 }
 
 const CURRENCY_ICONS: Record<CryptoCurrency, string> = {
     BTC: '₿',
     ETH: 'Ξ',
     BNB: 'BNB',
-    USDT: '₮'
+    USDT: '₮',
+    SOL: '◎',
+    USDC: '$'
 }
 
 const CURRENCY_COLORS: Record<CryptoCurrency, string> = {
     BTC: 'from-orange-500 to-yellow-500',
     ETH: 'from-purple-500 to-blue-500',
     BNB: 'from-yellow-400 to-yellow-600',
-    USDT: 'from-green-500 to-emerald-500'
+    USDT: 'from-green-500 to-emerald-500',
+    SOL: 'from-purple-500 to-teal-500',
+    USDC: 'from-blue-500 to-cyan-500'
 }
 
 export default function BinancePriceDisplay() {
@@ -89,7 +95,7 @@ export default function BinancePriceDisplay() {
 
     if (!prices) return null
 
-    const currencies: CryptoCurrency[] = ['BTC', 'ETH', 'BNB', 'USDT']
+    const currencies: CryptoCurrency[] = ['BTC', 'ETH', 'BNB', 'SOL', 'USDT', 'USDC']
 
     return (
         <div className="p-8 space-y-6 max-w-6xl mx-auto">

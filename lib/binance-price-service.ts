@@ -13,6 +13,8 @@ const BINANCE_SYMBOLS: Record<CryptoCurrency, string> = {
     BTC: 'BTCUSDT',
     ETH: 'ETHUSDT',
     BNB: 'BNBUSDT',
+    SOL: 'SOLUSDT',
+    USDC: 'USDCUSDT',
     USDT: 'USDT', // Special case - always $1
 }
 

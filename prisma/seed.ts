@@ -124,6 +124,15 @@ async function main() {
     await prisma.vendorWallet.create({
         data: { vendorId: vendor1.id, currency: 'SOL', network: 'Solana', address: 'HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH' }
     })
+    await prisma.vendorWallet.create({
+        data: { vendorId: vendor1.id, currency: 'USDT', network: 'Solana', address: 'HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH' }
+    })
+    await prisma.vendorWallet.create({
+        data: { vendorId: vendor1.id, currency: 'USDC', network: 'Solana', address: 'HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH' }
+    })
+    await prisma.vendorWallet.create({
+        data: { vendorId: vendor1.id, currency: 'USDC', network: 'ERC20', address: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F' }
+    })
 
     // Vendor 2 Wallets
     await prisma.vendorWallet.create({
@@ -134,6 +143,15 @@ async function main() {
     })
     await prisma.vendorWallet.create({
         data: { vendorId: vendor2.id, currency: 'SOL', network: 'Solana', address: 'HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH' }
+    })
+    await prisma.vendorWallet.create({
+        data: { vendorId: vendor2.id, currency: 'USDT', network: 'Solana', address: 'HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH' }
+    })
+    await prisma.vendorWallet.create({
+        data: { vendorId: vendor2.id, currency: 'USDC', network: 'Solana', address: 'HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH' }
+    })
+    await prisma.vendorWallet.create({
+        data: { vendorId: vendor2.id, currency: 'USDC', network: 'BEP20', address: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F' }
     })
 
     // Create sample products
@@ -207,6 +225,7 @@ async function main() {
             { currency: 'USDT', priceUSD: 1 },
             { currency: 'BNB', priceUSD: 310 },
             { currency: 'SOL', priceUSD: 70 },
+            { currency: 'USDC', priceUSD: 1 },
         ],
         skipDuplicates: true,
     })

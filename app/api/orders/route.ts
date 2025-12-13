@@ -20,7 +20,7 @@ const orderSchema = z.object({
         country: z.string().min(2),
         zip: z.string().min(2),
     }),
-    currency: z.enum(['BTC', 'ETH', 'USDT', 'BNB', 'SOL']),
+    currency: z.enum(['BTC', 'ETH', 'USDT', 'BNB', 'SOL', 'USDC']),
     network: z.string()
 })
 
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
         // 1. Calculate Total (in production, fetch real prices from DB to avoid manipulation)
         // For this demo, we'll verify against DB products
         let totalUSD = 0
-        const dbItems = []
+        const dbItems: { product: any; quantity: number }[] = []
 
         for (const item of items) {
             const product = await prisma.product.findUnique({ where: { id: item.id } })

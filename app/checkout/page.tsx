@@ -21,7 +21,7 @@ export default function CheckoutPage() {
         country: '',
         zip: '',
     })
-    const [currency, setCurrency] = useState<'BTC' | 'ETH' | 'USDT' | 'BNB' | ''>('')
+    const [currency, setCurrency] = useState<'BTC' | 'ETH' | 'USDT' | 'BNB' | 'SOL' | 'USDC' | ''>('')
     const [network, setNetwork] = useState('')
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -180,7 +180,7 @@ export default function CheckoutPage() {
 
                             {/* Payment Method Selection */}
                             <div className="grid grid-cols-2 gap-4">
-                                {['BTC', 'ETH', 'USDT', 'BNB', 'SOL'].map((c) => (
+                                {['BTC', 'ETH', 'USDT', 'BNB', 'SOL', 'USDC'].map((c) => (
                                     <button
                                         key={c}
                                         onClick={() => {

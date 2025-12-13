@@ -1,11 +1,12 @@
-export const SUPPORTED_CURRENCIES = ['BTC', 'ETH', 'USDT', 'BNB', 'SOL'] as const
+export const SUPPORTED_CURRENCIES = ['BTC', 'ETH', 'USDT', 'BNB', 'SOL', 'USDC'] as const
 export type CryptoCurrency = typeof SUPPORTED_CURRENCIES[number]
 
 // Supported networks for each currency
 export const SUPPORTED_NETWORKS: Record<CryptoCurrency, string[]> = {
     BTC: ['Bitcoin', 'Lightning'],
     ETH: ['Ethereum', 'Arbitrum', 'Optimism'],
-    USDT: ['ERC20', 'TRC20', 'BEP20'],
+    USDT: ['ERC20', 'TRC20', 'BEP20', 'Solana'],
+    USDC: ['ERC20', 'BEP20', 'Solana'],
     BNB: ['BSC'],
     SOL: ['Solana']
 }
@@ -46,6 +47,12 @@ export const USDT_CONTRACTS = {
     // TRC20 contract would be needed for TRON integration in real implementation
 }
 
+// Solana SPL Token Addresses
+export const SPL_TOKENS = {
+    USDT: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB',
+    USDC: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+}
+
 // Payment timeout in minutes
 export const PAYMENT_TIMEOUT_MINUTES = parseInt(
     process.env.NEXT_PUBLIC_PAYMENT_TIMEOUT_MINUTES || '30'
@@ -56,6 +63,7 @@ export const MIN_PAYMENT_AMOUNTS: Record<CryptoCurrency, number> = {
     BTC: 0.0001, // ~$4 at $40k
     ETH: 0.001, // ~$2 at $2k
     USDT: 1, // $1
+    USDC: 1, // $1
     BNB: 0.01, // ~$5 at $500
     SOL: 0.05, // ~$1-5 depending on price
 }
