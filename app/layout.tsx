@@ -20,6 +20,8 @@ export const metadata: Metadata = {
 import Navbar from "./components/Navbar";
 import CartDrawer from "./components/CartDrawer";
 
+import { Providers } from "./components/Providers";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -31,9 +33,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning={true}
       >
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
+        <Providers>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
               window.addEventListener('error', function(event) {
                 if (event.message?.includes('chrome.runtime.sendMessage') || event.message?.includes('Extension ID')) {
                   event.stopImmediatePropagation();
@@ -49,11 +52,12 @@ export default function RootLayout({
                 }
               }, true);
             `,
-          }}
-        />
-        <Navbar />
-        <CartDrawer />
-        {children}
+            }}
+          />
+          <Navbar />
+          <CartDrawer />
+          {children}
+        </Providers>
       </body>
     </html>
   );

@@ -56,7 +56,7 @@ export async function POST(request: Request) {
 
         if (!user) {
             // Get referral code from cookie
-            const cookieStore = cookies()
+            const cookieStore = await cookies()
             const referralCode = cookieStore.get('ref_code')?.value
 
             // Create a guest user using service (handles referral logic)
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
             // Create Address
             const address = await tx.address.create({
                 data: {
-                    userId: user.id,
+                    userId: user!.id,
                     fullName: `${shipping.firstName} ${shipping.lastName}`,
                     addressLine: shipping.address,
                     city: shipping.city,
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
             // Create Order
             const newOrder = await tx.order.create({
                 data: {
-                    userId: user.id,
+                    userId: user!.id,
                     status: 'PENDING_PAYMENT',
                     totalUSD,
                     currency,

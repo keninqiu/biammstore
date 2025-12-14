@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db'
 import { getReferralStats, generateReferralCode } from '@/lib/referral-service'
-import { cookies } from 'next/headers'
+import { auth } from "@/auth"
 import { redirect } from 'next/navigation'
 
 // Helper to get current user ID (mock or from auth)
@@ -139,9 +139,9 @@ export default async function ReferralPage() {
                                     <td className="p-4 font-bold text-green-600">+${reward.amount.toFixed(2)}</td>
                                     <td className="p-4">
                                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${reward.status === 'AVAILABLE' ? 'bg-green-100 text-green-800' :
-                                                reward.status === 'PENDING' ? 'bg-amber-100 text-amber-800' :
-                                                    reward.status === 'CANCELED' ? 'bg-red-100 text-red-800' :
-                                                        'bg-gray-100 text-gray-800'
+                                            reward.status === 'PENDING' ? 'bg-amber-100 text-amber-800' :
+                                                reward.status === 'CANCELED' ? 'bg-red-100 text-red-800' :
+                                                    'bg-gray-100 text-gray-800'
                                             }`}>
                                             {reward.status}
                                         </span>
